@@ -1,16 +1,4 @@
-data "external" "check_project_exists" {
-  for_each = toset(var.repositories)
-  program = ["bash", "${path.module}/check_project_exists.sh"]
-  query = {
-    gitlab_token     = var.gitlab_token
-    gitlab_group_id  = var.gitlab_group_id
-    project_name     = each.key
-  }
-}
-
 resource "gitlab_project" "migrated_projects" {
-  for_each             = { for repo, exists in data.external.check_project_exists : repo => exists.result if exists.result == "false" }
-  name                 = each.key
   namespace_id         = var.gitlab_group_id
   visibility_level     = "private"
   initialize_with_readme = true
@@ -42,7 +30,8 @@ migrate_repo() {
   #git clone --bare "https://$GITHUB_TOKEN@github.com/$GITHUB_ORG/$REPO.git"
 
   # Download the specified release as a zip file from GitHub
-  curl -L -o $REPO.zip https://github.com/$GITHUB_ORG/$REPO/archive/refs/tags/v$RELEASE_TAG.zip
+  curl -L -H "Authorization: token GITHUB_TOKEN" -o $REPO.zip https://github.com/$GITHUB_ORG/$REPOSITORIES/archive/refs/tags/v$RELEASE_TAG.zip
+  #curl -L -o $REPO.zip https://github.com/$GITHUB_ORG/$REPO/archive/refs/tags/v$RELEASE_TAG.zip
 
 # Unzip the downloaded file
   unzip $REPO.zip
